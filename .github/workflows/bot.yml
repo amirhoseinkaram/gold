@@ -1,0 +1,27 @@
+name: Gold Bot
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # هر 10 دقیقه اجرا میشه
+  workflow_dispatch:      # دکمه اجرای دستی هم داره
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install libraries
+        run: pip install -r requirements.txt
+
+      - name: Run Robot
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+        run: python main.py
