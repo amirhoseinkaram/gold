@@ -4,11 +4,11 @@ import yfinance as yf
 import asyncio
 from telegram import Bot
 
-# دریافت تنظیمات از گیتهاب
+
 TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-# --- توابع قیمت ---
+
 def get_gold_price():
     try:
         ticker = yf.Ticker("GC=F")
@@ -57,7 +57,7 @@ async def send_update():
     if usdt: msg += f"🇺🇸 **تتر:** `{usdt:,} ت`\n   └ 🔗 منبع: _{usdt_src}_\n\n"
     if gold_18k: msg += f"✨ **طلای ۱۸:** `{gold_18k:,} ت`\n   └ 🧮 (هر گرم - بدون اجرت)\n\n"
     
-    msg += f"🆔 {CHANNEL_ID}"
+    msg += "🆔 @gold_price_rls "
 
     if gold or usdt:
         bot = Bot(token=TOKEN)
@@ -68,3 +68,4 @@ async def send_update():
 
 if __name__ == '__main__':
     asyncio.run(send_update())
+
