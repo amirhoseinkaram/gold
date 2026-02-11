@@ -150,7 +150,7 @@ async def send_update():
     if dollar: msg += f"💵 *دلار آمریکا:* `{dollar:,} تومان`\n\n"
     if euro: msg += f"💶 *یورو:* `{euro:,} تومان`\n\n"
     if usdt: msg += f"🇺🇸 *تتر:* `{usdt:,} تومان`\n\n"
-    if gold_18k: msg += f"✨ *طلای ۱۸:* `{gold_18k:,} تومان`\n   └ 🧮 \n\n"
+    if gold_18k: msg += f"✨ *طلای ۱۸:* `{gold_18k:,} تومان`\n    \n\n"
     
     msg += "🆔 @gold\_price\_rls"
 
@@ -166,4 +166,5 @@ async def send_update():
 
 if __name__ == '__main__':
     asyncio.run(send_update())
+
 
