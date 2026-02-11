@@ -5,12 +5,11 @@ import asyncio
 import re
 from bs4 import BeautifulSoup
 
-
-
+# دریافت توکن‌ها از محیط گیت‌هاب
 TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-
+# --- تابع تبدیل اعداد فارسی به انگلیسی ---
 def clean_number(text):
     if not text:
         return None
@@ -26,7 +25,7 @@ def clean_number(text):
     except:
         return None
 
-
+# --- دریافت قیمت دلار و یورو از الان‌چند ---
 def get_alanchand_prices():
     url = "https://alanchand.com/currencies-price"
     headers = {
@@ -34,15 +33,18 @@ def get_alanchand_prices():
     }
     prices = {'usd': None, 'eur': None}
     try:
-        response = requests.get(url, headers=headers, timeout=15) # تایم‌اوت رو بیشتر کردم
+        # تایم‌اوت رو ۱۵ ثانیه گذاشتم که اگر سایت کند بود ارور نده
+        response = requests.get(url, headers=headers, timeout=15)
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        # 1. استخراج دلار
         dollar_row = soup.find('tr', attrs={'title': 'قیمت دلار آمریکا'})
         if dollar_row:
             price_tag = dollar_row.find('td', class_='sellPrice')
             if price_tag:
                 prices['usd'] = clean_number(price_tag.get_text(strip=True))
 
+        # 2. استخراج یورو
         euro_row = soup.find('tr', attrs={'title': 'قیمت یورو'})
         if euro_row:
             price_tag = euro_row.find('td', class_='sellPrice')
@@ -52,18 +54,35 @@ def get_alanchand_prices():
         print(f"⚠️ Error fetching alanchand data: {e}")
     return prices
 
-
+# --- دریافت تتر (روش اصلاح شده شما: والکس -> تترلند) ---
 def get_usdt_price():
     headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    # تلاش اول: والکس
     try:
-        url = "https://api.nobitex.ir/v2/orderbook/USDTIRT"
-        data = requests.get(url, headers=headers, timeout=10).json()
-        price = data['bids'][0][0] 
-        return int(float(price) / 10)
+        url = "https://api.wallex.ir/v1/markets"
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            price = data['result']['symbols']['USDTTMN']['stats']['lastPrice']
+            return int(float(price)), "Wallex"
     except:
-        return None
+        pass
+    
+    # تلاش دوم: تترلند
+    try:
+        url = "https://api.tetherland.com/currencies"
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            price = data['data']['currencies']['USDT']['price']
+            return int(float(price)), "TetherLand"
+    except:
+        pass
+        
+    return None, None
 
-
+# --- دریافت انس طلا (Yahoo Finance) ---
 def get_gold_price():
     try:
         ticker = yf.Ticker("GC=F")
@@ -72,8 +91,9 @@ def get_gold_price():
     except:
         return None
 
-
+# --- محاسبه قیمت طلای ۱۸ عیار ---
 def calculate_18k(ounce, dollar_price):
+    # فرمول: (انس / 31.1035) * دلار * 0.75
     if ounce and dollar_price:
         try:
             return int((ounce / 31.1035) * dollar_price * 0.75)
@@ -81,7 +101,7 @@ def calculate_18k(ounce, dollar_price):
             return None
     return None
 
-
+# --- تابع ارسال پیام به تلگرام (سبک و سریع با requests) ---
 def send_telegram_message(msg):
     if not TOKEN or not CHANNEL_ID:
         print("🛑 No Token/Channel ID found.")
@@ -91,11 +111,11 @@ def send_telegram_message(msg):
     payload = {
         'chat_id': CHANNEL_ID,
         'text': msg,
-        'parse_mode': 'Markdown'
+        'parse_mode': 'Markdown' # برای بولد کردن با *ستاره*
     }
     
     try:
-        
+        # تایم‌اوت ۳۰ ثانیه برای جلوگیری از ارور Timed out
         response = requests.post(url, data=payload, timeout=30)
         
         if response.status_code == 200:
@@ -109,13 +129,21 @@ async def send_update():
     print("⏳ دریافت قیمت‌ها...")
     
     gold = get_gold_price()
-    usdt = get_usdt_price()
+    
+    # اینجا چون تتر خروجی تاپل (قیمت، منبع) میده، بازش میکنیم
+    usdt_data = get_usdt_price()
+    usdt = usdt_data[0] if usdt_data else None
+    # usdt_source = usdt_data[1] if usdt_data else None # اگه خواستی منبع رو چاپ کنی
+    
     fiat_prices = get_alanchand_prices()
     dollar = fiat_prices['usd']
     euro = fiat_prices['eur']
+    
+    # محاسبه طلا (فقط با دلار آمریکا)
     gold_18k = calculate_18k(gold, dollar)
     
-    
+    # --- ساخت پیام ---
+    # نکته: در حالت Markdown معمولی تلگرام، بولد کردن با *متن* انجام میشه نه **متن**
     msg = "💎 *گزارش لحظه‌ای بازار*\n\n"
     
     if gold: msg += f"🏆 *انس طلا:* `{gold:,}$`\n\n"
@@ -126,12 +154,12 @@ async def send_update():
     
     msg += "🆔 @goldpricerls"
 
+    # --- لاجیک ارسال یا تست ---
     if not TOKEN or not CHANNEL_ID:
         print("\n" + "="*40 + "\n🛑 LOCAL TEST OUTPUT\n" + "-" * 20)
         print(msg)
         print("="*40 + "\n")
     elif gold or usdt or dollar:
-        # استفاده از تابع جدید
         send_telegram_message(msg)
     else:
         print("❌ All sources failed.")
