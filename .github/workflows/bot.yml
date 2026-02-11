@@ -2,8 +2,8 @@ name: Gold & Dollar Price Bot
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # اجرا هر ۳۰ دقیقه یکبار
-  workflow_dispatch:      # قابلیت اجرای دستی دکمه‌ای
+    - cron: '*/30 * * * *'  
+  workflow_dispatch:     
 
 jobs:
   build:
