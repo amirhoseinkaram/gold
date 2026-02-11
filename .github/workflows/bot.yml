@@ -1,26 +1,29 @@
-name: Gold Bot
+name: Gold & Dollar Price Bot
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # هر 10 دقیقه اجرا میشه
-  workflow_dispatch:      # دکمه اجرای دستی هم داره
+    - cron: '*/30 * * * *'  # اجرا هر ۳۰ دقیقه یکبار
+  workflow_dispatch:      # قابلیت اجرای دستی دکمه‌ای
 
 jobs:
-  run-bot:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install libraries
-        run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run Robot
+      - name: Run Bot Script
         env:
           TOKEN: ${{ secrets.TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
